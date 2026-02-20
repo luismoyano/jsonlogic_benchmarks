@@ -394,11 +394,20 @@ def main
   puts "  Peak Mem  = peak memory usage during benchmark"
   puts
 
+  # Determine OS name for filename
+  os_name = case RUBY_PLATFORM
+            when /darwin/i then 'macos'
+            when /linux/i then 'linux'
+            when /mingw|mswin/i then 'windows'
+            else 'unknown'
+            end
+
   # Output JSON
   json_output = {
     'language' => 'ruby',
     'language_version' => RUBY_VERSION,
     'platform' => RUBY_PLATFORM,
+    'os' => os_name,
     'timestamp' => Time.now.iso8601,
     'total_tests' => total_test_count,
     'results' => results
@@ -407,7 +416,7 @@ def main
   results_dir = File.join(SCRIPT_DIR, 'results')
   FileUtils.mkdir_p(results_dir)
 
-  output_file = File.join(results_dir, "ruby_#{RUBY_VERSION}.json")
+  output_file = File.join(results_dir, "ruby_#{RUBY_VERSION}_#{os_name}.json")
   File.write(output_file, JSON.pretty_generate(json_output))
   puts "Results saved to: #{output_file}"
 end
