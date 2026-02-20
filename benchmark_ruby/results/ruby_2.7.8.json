@@ -1,0 +1,39 @@
+{
+  "language": "ruby",
+  "language_version": "2.7.8",
+  "platform": "x86_64-linux",
+  "timestamp": "2026-02-20T16:05:23+00:00",
+  "total_tests": 1739,
+  "results": {
+    "shiny_json_logic": {
+      "version": "0.2.14",
+      "status": "success",
+      "total_tests": 1739,
+      "passed": 1730,
+      "failed": 9,
+      "pass_rate": 99.48,
+      "avg_time_us": 15.577,
+      "ops_per_second": 64197.97
+    },
+    "json-logic-rb": {
+      "status": "incompatible",
+      "error": "Requires Ruby >= 3.0",
+      "min_ruby_version": "3.0"
+    },
+    "json_logic": {
+      "version": "0.4.7",
+      "status": "success",
+      "total_tests": 1739,
+      "passed": 1129,
+      "failed": 610,
+      "pass_rate": 64.92,
+      "avg_time_us": 6.787,
+      "ops_per_second": 147333.01
+    },
+    "json_logic_ruby": {
+      "status": "incompatible",
+      "error": "Requires Ruby >= 3.2",
+      "min_ruby_version": "3.2"
+    }
+  }
+}
