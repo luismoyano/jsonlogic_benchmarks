@@ -1,9 +1,15 @@
 {
   "language": "ruby",
   "language_version": "3.1.7",
+<<<<<<< Updated upstream
   "platform": "x86_64-linux",
   "timestamp": "2026-02-20T16:50:01+00:00",
   "total_tests": 1739,
+=======
+  "platform": "arm64-darwin23",
+  "timestamp": "2026-02-20T17:13:17+00:00",
+  "total_tests": 1138,
+>>>>>>> Stashed changes
   "results": {
     "shiny_json_logic": {
       "version": "0.2.14",
@@ -11,16 +17,26 @@
       "total_tests": 1739,
       "passed": 1730,
       "failed": 9,
+<<<<<<< Updated upstream
       "pass_rate": 99.48,
       "avg_time_us": 28.933,
       "ops_per_second": 34562.98,
       "peak_memory_mb": 154.75,
       "memory_delta_mb": 4.16,
       "memory_per_op_bytes": 2521.53
+=======
+      "pass_rate": 99.21,
+      "avg_time_us": 96.674,
+      "ops_per_second": 10344.0,
+      "peak_memory_mb": 218.38,
+      "memory_delta_mb": 2.66,
+      "memory_per_op_bytes": 2467.03
+>>>>>>> Stashed changes
     },
     "json-logic-rb": {
       "version": "0.2.0",
       "status": "success",
+<<<<<<< Updated upstream
       "total_tests": 1739,
       "passed": 1701,
       "failed": 38,
@@ -30,10 +46,22 @@
       "peak_memory_mb": 150.53,
       "memory_delta_mb": 2.1,
       "memory_per_op_bytes": 1295.5
+=======
+      "total_tests": 1138,
+      "passed": 1138,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_time_us": 78.761,
+      "ops_per_second": 12696.67,
+      "peak_memory_mb": 201.16,
+      "memory_delta_mb": 7.02,
+      "memory_per_op_bytes": 6464.34
+>>>>>>> Stashed changes
     },
     "json_logic": {
       "version": "0.4.7",
       "status": "success",
+<<<<<<< Updated upstream
       "total_tests": 1739,
       "passed": 1117,
       "failed": 622,
@@ -43,6 +71,17 @@
       "peak_memory_mb": 182.65,
       "memory_delta_mb": 35.3,
       "memory_per_op_bytes": 33134.7
+=======
+      "total_tests": 1138,
+      "passed": 734,
+      "failed": 404,
+      "pass_rate": 64.5,
+      "avg_time_us": 77.053,
+      "ops_per_second": 12978.15,
+      "peak_memory_mb": 231.03,
+      "memory_delta_mb": 37.17,
+      "memory_per_op_bytes": 53102.91
+>>>>>>> Stashed changes
     },
     "json_logic_ruby": {
       "status": "incompatible",
