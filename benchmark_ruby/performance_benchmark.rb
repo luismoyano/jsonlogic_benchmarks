@@ -167,6 +167,11 @@ def generate_benchmark_script(gem_config, all_tests)
       end
     end
 
+    # Memory measurement (cross-platform: Linux and macOS)
+    def memory_kb
+      `ps -o rss= -p \#{Process.pid}`.to_i
+    end
+
     # Warmup
     #{WARMUP_ITERATIONS}.times do
       TESTS.each do |test|
@@ -181,6 +186,8 @@ def generate_benchmark_script(gem_config, all_tests)
     total_passed = 0
     total_failed = 0
     total_time_passed = 0.0
+    peak_memory_kb = memory_kb
+    memory_before = memory_kb
 
     #{BENCHMARK_ITERATIONS}.times do
       TESTS.each do |test|
@@ -203,6 +210,10 @@ def generate_benchmark_script(gem_config, all_tests)
           else
             total_failed += 1
           end
+          
+          # Track peak memory
+          current_mem = memory_kb
+          peak_memory_kb = current_mem if current_mem > peak_memory_kb
         rescue => e
           elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time rescue 0
           elapsed_us = elapsed * 1_000_000
@@ -218,15 +229,26 @@ def generate_benchmark_script(gem_config, all_tests)
           else
             total_failed += 1
           end
+          
+          # Track peak memory
+          current_mem = memory_kb
+          peak_memory_kb = current_mem if current_mem > peak_memory_kb
         end
       end
     end
 
     # Calculate metrics
+    memory_after = memory_kb
     total_tests = total_passed + total_failed
     pass_rate = total_tests > 0 ? (total_passed.to_f / total_tests * 100).round(2) : 0
     avg_time_per_passed_us = total_passed > 0 ? (total_time_passed / total_passed).round(3) : 0
     ops_per_second = total_passed > 0 ? (total_passed / (total_time_passed / 1_000_000)).round(2) : 0
+    
+    # Memory metrics
+    peak_memory_mb = (peak_memory_kb / 1024.0).round(2)
+    memory_delta_mb = ((memory_after - memory_before) / 1024.0).round(2)
+    # Memory per operation (bytes per passed test, averaged over iterations)
+    memory_per_op_bytes = total_passed > 0 ? (((memory_after - memory_before) * 1024.0) / (total_passed / #{BENCHMARK_ITERATIONS})).round(2) : 0
 
     puts "BENCHMARK_RESULT:" + JSON.generate({
       version: gem_version,
@@ -236,7 +258,10 @@ def generate_benchmark_script(gem_config, all_tests)
       failed: total_failed / #{BENCHMARK_ITERATIONS},
       pass_rate: pass_rate,
       avg_time_us: avg_time_per_passed_us,
-      ops_per_second: ops_per_second
+      ops_per_second: ops_per_second,
+      peak_memory_mb: peak_memory_mb,
+      memory_delta_mb: memory_delta_mb,
+      memory_per_op_bytes: memory_per_op_bytes
     })
   RUBY
 end
@@ -321,7 +346,8 @@ def main
     else
       pass_rate = result['pass_rate'] || 0
       ops = result['ops_per_second'] || 0
-      puts "#{pass_rate}% pass, #{format_number(ops.to_i)} ops/sec"
+      peak_mem = result['peak_memory_mb'] || 0
+      puts "#{pass_rate}% pass, #{format_number(ops.to_i)} ops/sec, #{peak_mem} MB peak"
     end
   end
 
@@ -340,7 +366,7 @@ def main
     end
   end
 
-  puts "| Gem                  | Version | Pass Rate | Passed | Failed | Ops/sec     | Avg Time  |"
+  puts "| Gem                  | Version | Pass Rate | Passed | Failed | Ops/sec     | Peak Mem  |"
   puts "|----------------------|---------|-----------|--------|--------|-------------|-----------|"
 
   sorted.each do |gem_name, result|
@@ -355,9 +381,9 @@ def main
       passed = result['passed'] || 0
       failed = result['failed'] || 0
       ops = format_number((result['ops_per_second'] || 0).to_i)
-      avg_time = "#{result['avg_time_us']} us"
+      peak_mem = "#{result['peak_memory_mb']} MB"
 
-      puts "| #{gem_name.ljust(20)} | #{version.ljust(7)} | #{pass_rate.rjust(9)} | #{passed.to_s.rjust(6)} | #{failed.to_s.rjust(6)} | #{ops.rjust(11)} | #{avg_time.rjust(9)} |"
+      puts "| #{gem_name.ljust(20)} | #{version.ljust(7)} | #{pass_rate.rjust(9)} | #{passed.to_s.rjust(6)} | #{failed.to_s.rjust(6)} | #{ops.rjust(11)} | #{peak_mem.rjust(9)} |"
     end
   end
 
@@ -365,7 +391,7 @@ def main
   puts "Legend:"
   puts "  Pass Rate = percentage of tests passed"
   puts "  Ops/sec   = operations per second (passed tests only)"
-  puts "  Avg Time  = average time per passed operation"
+  puts "  Peak Mem  = peak memory usage during benchmark"
   puts
 
   # Output JSON
