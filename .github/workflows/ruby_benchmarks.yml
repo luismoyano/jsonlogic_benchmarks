@@ -1,0 +1,47 @@
+name: Ruby Benchmarks
+
+on:
+  # Run weekly on Sundays at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * 0'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      max-parallel: 1  # Run sequentially to avoid git conflicts
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ruby-version: ['2.7', '3.1', '3.2', '3.3', '3.4']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby ${{ matrix.ruby-version }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: false
+
+      - name: Download test suites
+        run: |
+          chmod +x scripts/download_tests.sh
+          ./scripts/download_tests.sh
+
+      - name: Run benchmark
+        run: ruby benchmark_ruby/performance_benchmark.rb
+
+      - name: Commit and push results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git pull --rebase
+          git add benchmark_ruby/results/
+          git diff --staged --quiet || git commit -m "benchmark: ${{ matrix.os }} ruby-${{ matrix.ruby-version }}"
+          git push

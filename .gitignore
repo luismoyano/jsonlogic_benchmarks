@@ -1,0 +1,16 @@
+# Downloaded test suites (fetched fresh on each CI run)
+tests/
+
+# Ruby
+*.gem
+Gemfile.lock
+
+# OS
+.DS_Store
+
+# Editor/IDE (except .idea which has project config)
+*.swp
+*~
+
+# JetBrains IDEs (RubyMine, WebStorm, etc.) project files
+.idea/
