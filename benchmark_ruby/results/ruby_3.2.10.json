@@ -2,7 +2,7 @@
   "language": "ruby",
   "language_version": "3.2.10",
   "platform": "x86_64-linux",
-  "timestamp": "2026-02-20T16:26:05+00:00",
+  "timestamp": "2026-02-20T16:53:25+00:00",
   "total_tests": 1739,
   "results": {
     "shiny_json_logic": {
@@ -12,11 +12,11 @@
       "passed": 1730,
       "failed": 9,
       "pass_rate": 99.48,
-      "avg_time_us": 23.175,
-      "ops_per_second": 43149.05,
-      "peak_memory_mb": 203.04,
-      "memory_delta_mb": -3.75,
-      "memory_per_op_bytes": -2272.92
+      "avg_time_us": 28.1,
+      "ops_per_second": 35587.4,
+      "peak_memory_mb": 201.96,
+      "memory_delta_mb": -3.89,
+      "memory_per_op_bytes": -2355.79
     },
     "json-logic-rb": {
       "version": "0.2.0",
@@ -25,11 +25,11 @@
       "passed": 1701,
       "failed": 38,
       "pass_rate": 97.81,
-      "avg_time_us": 20.905,
-      "ops_per_second": 47835.07,
+      "avg_time_us": 24.56,
+      "ops_per_second": 40716.69,
       "peak_memory_mb": 200.48,
-      "memory_delta_mb": -3.57,
-      "memory_per_op_bytes": -2198.5
+      "memory_delta_mb": -3.74,
+      "memory_per_op_bytes": -2304.45
     },
     "json_logic": {
       "version": "0.4.7",
@@ -38,11 +38,11 @@
       "passed": 1117,
       "failed": 622,
       "pass_rate": 64.23,
-      "avg_time_us": 13.033,
-      "ops_per_second": 76729.59,
-      "peak_memory_mb": 198.97,
-      "memory_delta_mb": -3.78,
-      "memory_per_op_bytes": -3545.96
+      "avg_time_us": 16.334,
+      "ops_per_second": 61223.34,
+      "peak_memory_mb": 198.99,
+      "memory_delta_mb": -3.92,
+      "memory_per_op_bytes": -3681.63
     },
     "json_logic_ruby": {
       "status": "error",
