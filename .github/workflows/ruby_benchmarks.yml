@@ -41,7 +41,15 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git pull --rebase
+          # Stage our results first
+          git add benchmark_ruby/results/
+          # Stash if there are staged changes
+          git diff --staged --quiet || git stash --include-untracked
+          # Pull latest changes
+          git pull --rebase origin master
+          # Pop stash if we stashed
+          git stash pop || true
+          # Re-add and commit
           git add benchmark_ruby/results/
           git diff --staged --quiet || git commit -m "benchmark: ${{ matrix.os }} ruby-${{ matrix.ruby-version }}"
           git push
