@@ -9,8 +9,6 @@ jsonlogic_benchmarks/
 ├── scripts/
 │   └── download_tests.sh      # Shared: downloads all test suites
 ├── tests/                      # Shared: downloaded tests (gitignored)
-│   ├── official/              # From json-logic/.github
-│   └── compat/                # From json-logic/compat-tables
 ├── benchmark_ruby/            # Ruby implementation
 ├── benchmark_python/          # Python implementation (example)
 ├── benchmark_javascript/      # JavaScript implementation (example)

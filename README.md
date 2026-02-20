@@ -4,16 +4,13 @@ Automated benchmarks measuring **performance** and **correctness** of JSON Logic
 
 ## What We Measure
 
-- **Correctness**: Pass rate against 1,416 tests from multiple sources
+- **Correctness**: Pass rate against official test suites
 - **Performance**: Operations per second (only counting passed tests)
 - **Cross-platform**: Ubuntu and macOS
 
-## Test Sources
+## Test Source
 
-Tests are aggregated from:
-
-1. **[json-logic/.github](https://github.com/json-logic/.github/tree/main/tests)** - Official community test suites
-2. **[json-logic/compat-tables](https://github.com/json-logic/compat-tables)** - Comprehensive compatibility tests covering edge cases
+Tests are downloaded from **[json-logic/.github](https://github.com/json-logic/.github/tree/main/tests)** - the official community test suites.
 
 All tests use the standardized format defined in [TEST_FORMAT.md](https://github.com/json-logic/.github/blob/main/TEST_FORMAT.md).
 
