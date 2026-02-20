@@ -1,0 +1,49 @@
+{
+  "language": "ruby",
+  "language_version": "3.4.8",
+  "platform": "x86_64-linux",
+  "timestamp": "2026-02-20T16:07:51+00:00",
+  "total_tests": 1739,
+  "results": {
+    "shiny_json_logic": {
+      "version": "0.2.14",
+      "status": "success",
+      "total_tests": 1739,
+      "passed": 1730,
+      "failed": 9,
+      "pass_rate": 99.48,
+      "avg_time_us": 12.202,
+      "ops_per_second": 81954.02
+    },
+    "json-logic-rb": {
+      "version": "0.2.0",
+      "status": "success",
+      "total_tests": 1739,
+      "passed": 1701,
+      "failed": 38,
+      "pass_rate": 97.81,
+      "avg_time_us": 10.423,
+      "ops_per_second": 95939.88
+    },
+    "json_logic": {
+      "version": "0.4.7",
+      "status": "success",
+      "total_tests": 1739,
+      "passed": 1117,
+      "failed": 622,
+      "pass_rate": 64.23,
+      "avg_time_us": 5.905,
+      "ops_per_second": 169358.42
+    },
+    "json_logic_ruby": {
+      "version": "0.2.4",
+      "status": "success",
+      "total_tests": 1739,
+      "passed": 750,
+      "failed": 989,
+      "pass_rate": 43.13,
+      "avg_time_us": 3.702,
+      "ops_per_second": 270130.78
+    }
+  }
+}
