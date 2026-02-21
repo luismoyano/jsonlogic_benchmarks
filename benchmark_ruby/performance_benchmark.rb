@@ -424,9 +424,9 @@ def main
   File.write(output_file, JSON.pretty_generate(json_output))
   puts "Results saved to: #{output_file}"
 
-  # Also update latest/ symlink for easy access to most recent results
+  # Also update latest/ for easy access to most recent results
+  # Note: Don't rm -rf, just overwrite individual files to avoid conflicts in CI
   latest_dir = File.join(SCRIPT_DIR, 'results', 'latest')
-  FileUtils.rm_rf(latest_dir)
   FileUtils.mkdir_p(latest_dir)
   latest_file = File.join(latest_dir, filename)
   File.write(latest_file, JSON.pretty_generate(json_output))
