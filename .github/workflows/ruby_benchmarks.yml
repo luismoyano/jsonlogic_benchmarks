@@ -30,6 +30,8 @@ jobs:
           bundler-cache: false
 
       - name: Download test suites
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x scripts/download_tests.sh
           ./scripts/download_tests.sh
