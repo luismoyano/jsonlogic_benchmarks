@@ -48,7 +48,7 @@ Weekly (Sunday 00:00 UTC)
 ruby benchmark_ruby/performance_benchmark.rb
 ```
 
-Results are written to `benchmark_ruby/results/ruby_<version>.json`.
+Results are written to `benchmark_ruby/results/<date>/ruby_<version>_<os>.json`.
 
 ## Project Structure
 
@@ -61,7 +61,11 @@ jsonlogic_benchmarks/
 ├── tests/                      # Downloaded tests (gitignored)
 ├── benchmark_ruby/
 │   ├── performance_benchmark.rb
-│   └── results/                # JSON output files
+│   └── results/
+│       ├── 2026-02-21/         # Historical results by date
+│       │   ├── ruby_3.2.10_linux.json
+│       │   └── ruby_4.0.1_macos.json
+│       └── latest/             # Most recent results (updated each run)
 ├── CONTRIBUTING.md             # Guide for adding new languages
 └── README.md
 ```

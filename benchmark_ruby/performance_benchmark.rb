@@ -71,26 +71,26 @@ end
 
 def load_test_suites
   all_tests = {}
-  
+
   unless Dir.exist?(TESTS_DIR)
     puts "ERROR: Tests directory not found: #{TESTS_DIR}"
-    puts "Run scripts/download_tests.sh first"
+    puts 'Run scripts/download_tests.sh first'
     exit 1
   end
-  
+
   puts "Loading test suites from #{TESTS_DIR}..."
-  
+
   # Find all JSON files recursively
   Dir.glob(File.join(TESTS_DIR, '**', '*.json')).each do |file|
     # Create suite name from relative path
     relative_path = file.sub("#{TESTS_DIR}/", '')
-    suite_name = relative_path.gsub('/', '_').gsub('.json', '')
-    
+    suite_name = relative_path.tr('/', '_').gsub('.json', '')
+
     begin
       raw = JSON.parse(File.read(file))
       # Filter out comment strings, keep only test objects
       tests = raw.select { |item| item.is_a?(Hash) }
-      
+
       if tests.any?
         all_tests[suite_name] = tests
         puts "  #{relative_path}: #{tests.size} tests"
@@ -99,14 +99,14 @@ def load_test_suites
       puts "  #{relative_path}: PARSE ERROR - #{e.message}"
     end
   end
-  
+
   all_tests
 end
 
 def generate_benchmark_script(gem_config, all_tests)
   # Flatten all tests into a single array
   flattened_tests = []
-  all_tests.each do |suite_name, tests|
+  all_tests.each do |_suite_name, tests|
     tests.each do |test|
       flattened_tests << {
         'rule' => test['rule'],
@@ -116,7 +116,7 @@ def generate_benchmark_script(gem_config, all_tests)
       }
     end
   end
-  
+
   tests_json = JSON.generate(flattened_tests)
 
   <<~RUBY
@@ -210,7 +210,7 @@ def generate_benchmark_script(gem_config, all_tests)
           else
             total_failed += 1
           end
-          
+    #{'      '}
           # Track peak memory
           current_mem = memory_kb
           peak_memory_kb = current_mem if current_mem > peak_memory_kb
@@ -229,7 +229,7 @@ def generate_benchmark_script(gem_config, all_tests)
           else
             total_failed += 1
           end
-          
+    #{'      '}
           # Track peak memory
           current_mem = memory_kb
           peak_memory_kb = current_mem if current_mem > peak_memory_kb
@@ -243,7 +243,7 @@ def generate_benchmark_script(gem_config, all_tests)
     pass_rate = total_tests > 0 ? (total_passed.to_f / total_tests * 100).round(2) : 0
     avg_time_per_passed_us = total_passed > 0 ? (total_time_passed / total_passed).round(3) : 0
     ops_per_second = total_passed > 0 ? (total_passed / (total_time_passed / 1_000_000)).round(2) : 0
-    
+
     # Memory metrics
     peak_memory_mb = (peak_memory_kb / 1024.0).round(2)
     memory_delta_mb = ((memory_after - memory_before) / 1024.0).round(2)
@@ -266,7 +266,7 @@ def generate_benchmark_script(gem_config, all_tests)
   RUBY
 end
 
-def run_benchmark(gem_name, gem_config, all_tests)
+def run_benchmark(_gem_name, gem_config, all_tests)
   current = Gem::Version.new(ruby_version)
   min_required = Gem::Version.new(gem_config[:min_ruby])
 
@@ -302,7 +302,7 @@ def run_benchmark(gem_name, gem_config, all_tests)
       return { 'status' => 'error', 'error' => stderr_clean.empty? ? 'Unknown error' : stderr_clean[0..200] }
     end
 
-    { 'status' => 'error', 'error' => "No benchmark result found" }
+    { 'status' => 'error', 'error' => 'No benchmark result found' }
   end
 end
 
@@ -311,9 +311,9 @@ def format_number(n)
 end
 
 def main
-  puts "=" * 70
-  puts "JSON LOGIC RUBY - PERFORMANCE & COMPATIBILITY BENCHMARK"
-  puts "=" * 70
+  puts '=' * 70
+  puts 'JSON LOGIC RUBY - PERFORMANCE & COMPATIBILITY BENCHMARK'
+  puts '=' * 70
   puts
   puts "Ruby version: #{RUBY_VERSION}"
   puts "Ruby platform: #{RUBY_PLATFORM}"
@@ -352,13 +352,13 @@ def main
   end
 
   puts
-  puts "=" * 70
-  puts "RESULTS SUMMARY"
-  puts "=" * 70
+  puts '=' * 70
+  puts 'RESULTS SUMMARY'
+  puts '=' * 70
   puts
 
   # Sort by pass rate, then by ops/sec
-  sorted = results.sort_by do |name, r|
+  sorted = results.sort_by do |_name, r|
     if r['status'] == 'success'
       [-(r['pass_rate'] || 0), -(r['ops_per_second'] || 0)]
     else
@@ -366,8 +366,8 @@ def main
     end
   end
 
-  puts "| Gem                  | Version | Pass Rate | Passed | Failed | Ops/sec     | Peak Mem  |"
-  puts "|----------------------|---------|-----------|--------|--------|-------------|-----------|"
+  puts '| Gem                  | Version | Pass Rate | Passed | Failed | Ops/sec     | Peak Mem  |'
+  puts '|----------------------|---------|-----------|--------|--------|-------------|-----------|'
 
   sorted.each do |gem_name, result|
     case result['status']
@@ -388,10 +388,10 @@ def main
   end
 
   puts
-  puts "Legend:"
-  puts "  Pass Rate = percentage of tests passed"
-  puts "  Ops/sec   = operations per second (passed tests only)"
-  puts "  Peak Mem  = peak memory usage during benchmark"
+  puts 'Legend:'
+  puts '  Pass Rate = percentage of tests passed'
+  puts '  Ops/sec   = operations per second (passed tests only)'
+  puts '  Peak Mem  = peak memory usage during benchmark'
   puts
 
   # Determine OS name for filename
@@ -403,22 +403,34 @@ def main
             end
 
   # Output JSON
+  timestamp = Time.now
   json_output = {
     'language' => 'ruby',
     'language_version' => RUBY_VERSION,
     'platform' => RUBY_PLATFORM,
     'os' => os_name,
-    'timestamp' => Time.now.iso8601,
+    'timestamp' => timestamp.iso8601,
     'total_tests' => total_test_count,
     'results' => results
   }
 
-  results_dir = File.join(SCRIPT_DIR, 'results')
-  FileUtils.mkdir_p(results_dir)
+  # Create date-based directory structure for historical tracking
+  date_str = timestamp.strftime('%Y-%m-%d')
+  dated_results_dir = File.join(SCRIPT_DIR, 'results', date_str)
+  FileUtils.mkdir_p(dated_results_dir)
 
-  output_file = File.join(results_dir, "ruby_#{RUBY_VERSION}_#{os_name}.json")
+  filename = "ruby_#{RUBY_VERSION}_#{os_name}.json"
+  output_file = File.join(dated_results_dir, filename)
   File.write(output_file, JSON.pretty_generate(json_output))
   puts "Results saved to: #{output_file}"
+
+  # Also update latest/ symlink for easy access to most recent results
+  latest_dir = File.join(SCRIPT_DIR, 'results', 'latest')
+  FileUtils.rm_rf(latest_dir)
+  FileUtils.mkdir_p(latest_dir)
+  latest_file = File.join(latest_dir, filename)
+  File.write(latest_file, JSON.pretty_generate(json_output))
+  puts "Latest results updated: #{latest_file}"
 end
 
 main

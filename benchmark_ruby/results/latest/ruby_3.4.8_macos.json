@@ -1,0 +1,62 @@
+{
+  "language": "ruby",
+  "language_version": "3.4.8",
+  "platform": "arm64-darwin23",
+  "os": "macos",
+  "timestamp": "2026-02-20T17:51:37+00:00",
+  "total_tests": 601,
+  "results": {
+    "shiny_json_logic": {
+      "version": "0.2.14",
+      "status": "success",
+      "total_tests": 601,
+      "passed": 601,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_time_us": 69.921,
+      "ops_per_second": 14301.76,
+      "peak_memory_mb": 180.55,
+      "memory_delta_mb": 7.67,
+      "memory_per_op_bytes": 13385.26
+    },
+    "json-logic-rb": {
+      "version": "0.2.0",
+      "status": "success",
+      "total_tests": 601,
+      "passed": 563,
+      "failed": 38,
+      "pass_rate": 93.68,
+      "avg_time_us": 43.191,
+      "ops_per_second": 23152.91,
+      "peak_memory_mb": 156.52,
+      "memory_delta_mb": 10.89,
+      "memory_per_op_bytes": 20283.57
+    },
+    "json_logic": {
+      "version": "0.4.7",
+      "status": "success",
+      "total_tests": 601,
+      "passed": 383,
+      "failed": 218,
+      "pass_rate": 63.73,
+      "avg_time_us": 31.826,
+      "ops_per_second": 31420.74,
+      "peak_memory_mb": 157.11,
+      "memory_delta_mb": 10.44,
+      "memory_per_op_bytes": 28575.75
+    },
+    "json_logic_ruby": {
+      "version": "0.2.4",
+      "status": "success",
+      "total_tests": 601,
+      "passed": 262,
+      "failed": 339,
+      "pass_rate": 43.59,
+      "avg_time_us": 32.834,
+      "ops_per_second": 30456.62,
+      "peak_memory_mb": 165.08,
+      "memory_delta_mb": 5.02,
+      "memory_per_op_bytes": 20073.53
+    }
+  }
+}
