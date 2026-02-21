@@ -9,7 +9,29 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Download test suites once and share via artifact
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download test suites
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/download_tests.sh
+          ./scripts/download_tests.sh
+
+      - name: Upload test suites artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-suites
+          path: test_suites/
+          retention-days: 1
+
   benchmark:
+    needs: setup
     runs-on: ${{ matrix.os }}
     
     strategy:
@@ -23,18 +45,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download test suites artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-suites
+          path: test_suites/
+
       - name: Set up Ruby ${{ matrix.ruby-version }}
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: false
-
-      - name: Download test suites
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          chmod +x scripts/download_tests.sh
-          ./scripts/download_tests.sh
 
       - name: Run benchmark
         run: ruby benchmark_ruby/performance_benchmark.rb
