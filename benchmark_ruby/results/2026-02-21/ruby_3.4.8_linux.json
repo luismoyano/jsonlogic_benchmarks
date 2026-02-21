@@ -1,9 +1,9 @@
 {
   "language": "ruby",
-  "language_version": "4.0.1",
+  "language_version": "3.4.8",
   "platform": "x86_64-linux",
   "os": "linux",
-  "timestamp": "2026-02-21T11:31:52+00:00",
+  "timestamp": "2026-02-21T11:32:01+00:00",
   "total_tests": 601,
   "results": {
     "shiny_json_logic": {
@@ -13,11 +13,11 @@
       "passed": 601,
       "failed": 0,
       "pass_rate": 100.0,
-      "avg_time_us": 38.535,
-      "ops_per_second": 25950.33,
-      "peak_memory_mb": 123.22,
-      "memory_delta_mb": 4.7,
-      "memory_per_op_bytes": 8192.0
+      "avg_time_us": 37.227,
+      "ops_per_second": 26861.98,
+      "peak_memory_mb": 115.86,
+      "memory_delta_mb": 5.63,
+      "memory_per_op_bytes": 9814.04
     },
     "json-logic-rb": {
       "version": "0.2.0",
@@ -26,11 +26,11 @@
       "passed": 563,
       "failed": 38,
       "pass_rate": 93.68,
-      "avg_time_us": 30.653,
-      "ops_per_second": 32622.74,
-      "peak_memory_mb": 124.5,
-      "memory_delta_mb": 5.54,
-      "memory_per_op_bytes": 10323.67
+      "avg_time_us": 33.171,
+      "ops_per_second": 30146.37,
+      "peak_memory_mb": 119.54,
+      "memory_delta_mb": 6.5,
+      "memory_per_op_bytes": 12106.12
     },
     "json_logic": {
       "version": "0.4.7",
@@ -39,11 +39,11 @@
       "passed": 383,
       "failed": 218,
       "pass_rate": 63.73,
-      "avg_time_us": 18.255,
-      "ops_per_second": 54780.33,
-      "peak_memory_mb": 123.01,
-      "memory_delta_mb": 5.53,
-      "memory_per_op_bytes": 15143.44
+      "avg_time_us": 19.416,
+      "ops_per_second": 51504.6,
+      "peak_memory_mb": 116.12,
+      "memory_delta_mb": 6.5,
+      "memory_per_op_bytes": 17795.68
     },
     "json_logic_ruby": {
       "version": "0.2.4",
@@ -52,11 +52,11 @@
       "passed": 262,
       "failed": 339,
       "pass_rate": 43.59,
-      "avg_time_us": 20.993,
-      "ops_per_second": 47634.53,
-      "peak_memory_mb": 177.23,
-      "memory_delta_mb": 8.25,
-      "memory_per_op_bytes": 33018.14
+      "avg_time_us": 22.556,
+      "ops_per_second": 44333.91,
+      "peak_memory_mb": 181.43,
+      "memory_delta_mb": 6.5,
+      "memory_per_op_bytes": 26014.29
     }
   }
 }
