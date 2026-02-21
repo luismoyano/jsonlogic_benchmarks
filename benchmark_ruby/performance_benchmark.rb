@@ -103,12 +103,11 @@ def load_test_suites
   all_tests
 end
 
-def generate_benchmark_script(gem_config, all_tests)
-  # Flatten all tests into a single array
-  flattened_tests = []
+def flatten_tests(all_tests)
+  flattened = []
   all_tests.each do |_suite_name, tests|
     tests.each do |test|
-      flattened_tests << {
+      flattened << {
         'rule' => test['rule'],
         'data' => test['data'],
         'result' => test['result'],
@@ -116,8 +115,45 @@ def generate_benchmark_script(gem_config, all_tests)
       }
     end
   end
+  flattened
+end
+
+def generate_benchmark_script(gem_config, all_tests, subset_indices: nil, report_passed_indices: false)
+  flattened_tests = flatten_tests(all_tests)
+
+  # If a subset is given, filter to only those indices
+  if subset_indices
+    flattened_tests = subset_indices.map { |i| flattened_tests[i] }
+  end
 
   tests_json = JSON.generate(flattened_tests)
+
+  report_indices_code = report_passed_indices ? <<~RUBY_FRAG : 'passed_indices = []'
+    passed_indices_set = {}
+    1.times do
+      TESTS.each_with_index do |test, idx|
+        logic = test['rule']
+        data  = test['data']
+        expects_error = !test['error'].nil?
+        expected = test['result']
+        begin
+          result = #{gem_config[:call]}
+          if !expects_error && results_equal?(result, expected)
+            passed_indices_set[idx] = true
+          elsif expects_error
+            expected_type = test.dig('error', 'type')
+            passed_indices_set[idx] = true if expected_type.nil? || result.nil?
+          end
+        rescue => e
+          if expects_error
+            expected_type = test.dig('error', 'type')
+            passed_indices_set[idx] = true if expected_type.nil? || e.message.include?(expected_type.to_s) || e.class.to_s.include?(expected_type.to_s)
+          end
+        end
+      end
+    end
+    passed_indices = passed_indices_set.keys
+  RUBY_FRAG
 
   <<~RUBY
     $stdout = File.open(File::NULL, 'w')
@@ -181,6 +217,9 @@ def generate_benchmark_script(gem_config, all_tests)
         end
       end
     end
+
+    # Collect passed indices (first pass, no timing)
+    #{report_indices_code}
 
     # Benchmark with correctness checking
     total_passed = 0
@@ -261,12 +300,13 @@ def generate_benchmark_script(gem_config, all_tests)
       ops_per_second: ops_per_second,
       peak_memory_mb: peak_memory_mb,
       memory_delta_mb: memory_delta_mb,
-      memory_per_op_bytes: memory_per_op_bytes
+      memory_per_op_bytes: memory_per_op_bytes,
+      passed_indices: passed_indices
     })
   RUBY
 end
 
-def run_benchmark(_gem_name, gem_config, all_tests)
+def run_benchmark(_gem_name, gem_config, all_tests, subset_indices: nil, report_passed_indices: false)
   current = Gem::Version.new(ruby_version)
   min_required = Gem::Version.new(gem_config[:min_ruby])
 
@@ -278,7 +318,7 @@ def run_benchmark(_gem_name, gem_config, all_tests)
     }
   end
 
-  script = generate_benchmark_script(gem_config, all_tests)
+  script = generate_benchmark_script(gem_config, all_tests, subset_indices: subset_indices, report_passed_indices: report_passed_indices)
   ruby_exe = RbConfig.ruby
 
   Dir.mktmpdir do |tmpdir|
@@ -310,6 +350,54 @@ def format_number(n)
   n.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
 end
 
+def print_results_table(results)
+  sorted = results.sort_by do |_name, r|
+    r['status'] == 'success' ? [-(r['pass_rate'] || 0), -(r['ops_per_second'] || 0)] : [0, 0]
+  end
+
+  puts '| Gem                  | Version | Pass Rate | Passed | Failed | Ops/sec     | Peak Mem  |'
+  puts '|----------------------|---------|-----------|--------|--------|-------------|-----------|'
+
+  sorted.each do |gem_name, result|
+    case result['status']
+    when 'incompatible'
+      puts "| #{gem_name.ljust(20)} | -       | INCOMPATIBLE - #{result['error'].ljust(45)} |"
+    when 'error'
+      puts "| #{gem_name.ljust(20)} | -       | ERROR - #{result['error'][0..50].ljust(50)} |"
+    else
+      version   = (result['version'] || 'unknown')[0..6]
+      pass_rate = "#{result['pass_rate']}%"
+      passed    = result['passed'] || 0
+      failed    = result['failed'] || 0
+      ops       = format_number((result['ops_per_second'] || 0).to_i)
+      peak_mem  = "#{result['peak_memory_mb']} MB"
+      puts "| #{gem_name.ljust(20)} | #{version.ljust(7)} | #{pass_rate.rjust(9)} | #{passed.to_s.rjust(6)} | #{failed.to_s.rjust(6)} | #{ops.rjust(11)} | #{peak_mem.rjust(9)} |"
+    end
+  end
+end
+
+def print_comparable_results_table(results, common_count)
+  sorted = results.sort_by do |_name, r|
+    r['status'] == 'success' ? -(r['ops_per_second'] || 0) : 0
+  end
+
+  puts "| Gem                  | Version | Ops/sec (#{common_count} common tests) |"
+  puts '|----------------------|---------|-------------------------------|'
+
+  sorted.each do |gem_name, result|
+    case result['status']
+    when 'incompatible'
+      puts "| #{gem_name.ljust(20)} | -       | INCOMPATIBLE                  |"
+    when 'error'
+      puts "| #{gem_name.ljust(20)} | -       | ERROR                         |"
+    else
+      version = (result['version'] || 'unknown')[0..6]
+      ops     = format_number((result['ops_per_second'] || 0).to_i)
+      puts "| #{gem_name.ljust(20)} | #{version.ljust(7)} | #{ops.rjust(29)} |"
+    end
+  end
+end
+
 def main
   puts '=' * 70
   puts 'JSON LOGIC RUBY - PERFORMANCE & COMPATIBILITY BENCHMARK'
@@ -329,13 +417,19 @@ def main
   puts "Loaded #{all_tests.size} test suites with #{total_test_count} total tests"
   puts
 
+  # -----------------------------------------------------------------------
+  # MODE 1: Each gem measured on its own passing tests
+  # -----------------------------------------------------------------------
+  puts '--- Mode 1: Each gem measured on its own passing tests ---'
+  puts
+
   results = {}
 
   GEMS.each do |gem_name, gem_config|
     print "Benchmarking #{gem_name}... "
     $stdout.flush
 
-    result = run_benchmark(gem_name, gem_config, all_tests)
+    result = run_benchmark(gem_name, gem_config, all_tests, report_passed_indices: true)
     results[gem_name] = result
 
     case result['status']
@@ -353,39 +447,11 @@ def main
 
   puts
   puts '=' * 70
-  puts 'RESULTS SUMMARY'
+  puts 'RESULTS SUMMARY - Mode 1 (own passing tests)'
   puts '=' * 70
   puts
 
-  # Sort by pass rate, then by ops/sec
-  sorted = results.sort_by do |_name, r|
-    if r['status'] == 'success'
-      [-(r['pass_rate'] || 0), -(r['ops_per_second'] || 0)]
-    else
-      [0, 0]
-    end
-  end
-
-  puts '| Gem                  | Version | Pass Rate | Passed | Failed | Ops/sec     | Peak Mem  |'
-  puts '|----------------------|---------|-----------|--------|--------|-------------|-----------|'
-
-  sorted.each do |gem_name, result|
-    case result['status']
-    when 'incompatible'
-      puts "| #{gem_name.ljust(20)} | -       | INCOMPATIBLE - #{result['error'].ljust(45)} |"
-    when 'error'
-      puts "| #{gem_name.ljust(20)} | -       | ERROR - #{result['error'][0..50].ljust(50)} |"
-    else
-      version = (result['version'] || 'unknown')[0..6]
-      pass_rate = "#{result['pass_rate']}%"
-      passed = result['passed'] || 0
-      failed = result['failed'] || 0
-      ops = format_number((result['ops_per_second'] || 0).to_i)
-      peak_mem = "#{result['peak_memory_mb']} MB"
-
-      puts "| #{gem_name.ljust(20)} | #{version.ljust(7)} | #{pass_rate.rjust(9)} | #{passed.to_s.rjust(6)} | #{failed.to_s.rjust(6)} | #{ops.rjust(11)} | #{peak_mem.rjust(9)} |"
-    end
-  end
+  print_results_table(results)
 
   puts
   puts 'Legend:'
@@ -394,7 +460,70 @@ def main
   puts '  Peak Mem  = peak memory usage during benchmark'
   puts
 
-  # Determine OS name for filename
+  # -----------------------------------------------------------------------
+  # MODE 2: All gems measured on the intersection of passed tests
+  # -----------------------------------------------------------------------
+  puts '--- Mode 2: All gems measured on common passing tests (intersection) ---'
+  puts
+
+  # Collect passed indices from mode 1 for compatible gems only
+  per_gem_indices = {}
+  results.each do |gem_name, result|
+    next unless result['status'] == 'success'
+    indices = result['passed_indices']
+    per_gem_indices[gem_name] = indices.map(&:to_i) if indices&.any?
+  end
+
+  comparable_results = {}
+
+  if per_gem_indices.size < 2
+    puts 'Not enough compatible gems to compute intersection.'
+  else
+    intersection = per_gem_indices.values.reduce(:&)
+    puts "Intersection: #{intersection.size} tests pass in ALL compatible gems"
+    puts
+
+    GEMS.each do |gem_name, gem_config|
+      unless results[gem_name]&.dig('status') == 'success'
+        comparable_results[gem_name] = results[gem_name]
+        next
+      end
+
+      print "Benchmarking #{gem_name} (#{intersection.size} common tests)... "
+      $stdout.flush
+
+      result = run_benchmark(gem_name, gem_config, all_tests, subset_indices: intersection)
+      # Carry over version and pass_rate from mode 1 for display
+      result['version'] ||= results[gem_name]['version']
+      comparable_results[gem_name] = result
+
+      case result['status']
+      when 'error'
+        puts "ERROR (#{result['error'][0..50]})"
+      else
+        ops = result['ops_per_second'] || 0
+        puts "#{format_number(ops.to_i)} ops/sec"
+      end
+    end
+
+    puts
+    puts '=' * 70
+    puts "RESULTS SUMMARY - Mode 2 (#{intersection.size} common tests)"
+    puts '=' * 70
+    puts
+
+    print_comparable_results_table(comparable_results, intersection.size)
+
+    puts
+    puts 'Legend:'
+    puts "  Common tests = #{intersection.size} tests that ALL compatible gems pass"
+    puts '  Ops/sec      = operations per second on the common subset'
+    puts
+  end
+
+  # -----------------------------------------------------------------------
+  # Save JSON (includes both modes)
+  # -----------------------------------------------------------------------
   os_name = case RUBY_PLATFORM
             when /darwin/i then 'macos'
             when /linux/i then 'linux'
@@ -402,7 +531,6 @@ def main
             else 'unknown'
             end
 
-  # Output JSON
   timestamp = Time.now
   json_output = {
     'language' => 'ruby',
@@ -411,10 +539,10 @@ def main
     'os' => os_name,
     'timestamp' => timestamp.iso8601,
     'total_tests' => total_test_count,
-    'results' => results
+    'results' => results,
+    'comparable_results' => comparable_results
   }
 
-  # Create date-based directory structure for historical tracking
   date_str = timestamp.strftime('%Y-%m-%d')
   dated_results_dir = File.join(SCRIPT_DIR, 'results', date_str)
   FileUtils.mkdir_p(dated_results_dir)
@@ -424,8 +552,6 @@ def main
   File.write(output_file, JSON.pretty_generate(json_output))
   puts "Results saved to: #{output_file}"
 
-  # Also update latest/ for easy access to most recent results
-  # Note: Don't rm -rf, just overwrite individual files to avoid conflicts in CI
   latest_dir = File.join(SCRIPT_DIR, 'results', 'latest')
   FileUtils.mkdir_p(latest_dir)
   latest_file = File.join(latest_dir, filename)
