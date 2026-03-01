@@ -5,6 +5,9 @@ tests/
 *.gem
 Gemfile.lock
 
+# Local development scripts (not for CI)
+benchmark_ruby/local_benchmark.rb
+
 # OS
 .DS_Store
 

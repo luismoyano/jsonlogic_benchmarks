@@ -23,7 +23,6 @@ require 'json'
 require 'open3'
 require 'fileutils'
 require 'time'
-require 'tmpdir'
 
 SCRIPT_DIR = File.dirname(__FILE__)
 ROOT_DIR = File.dirname(SCRIPT_DIR)
@@ -38,29 +37,25 @@ GEMS = {
   'shiny_json_logic' => {
     gem: 'shiny_json_logic',
     require: 'shiny_json_logic',
-    call: 'ShinyJsonLogic.apply(logic, data)',
-    version_call: 'ShinyJsonLogic::VERSION',
+    adapter: 'shiny_json_logic',
     min_ruby: '2.7'
   },
   'json-logic-rb' => {
     gem: 'json-logic-rb',
     require: 'json_logic',
-    call: 'JsonLogic.apply(logic, data)',
-    version_call: 'JsonLogic::VERSION',
+    adapter: 'json-logic-rb',
     min_ruby: '3.0'
   },
   'json_logic' => {
     gem: 'json_logic',
     require: 'json_logic',
-    call: 'JSONLogic.apply(logic, data)',
-    version_call: 'JSONLogic::VERSION',
+    adapter: 'json_logic',
     min_ruby: '2.2'
   },
   'json_logic_ruby' => {
     gem: 'json_logic_ruby',
     require: 'json_logic',
-    call: 'JsonLogic::Evaluator.new.apply(logic, data)',
-    version_call: 'JsonLogic::VERSION',
+    adapter: 'json_logic_ruby',
     min_ruby: '3.2'
   }
 }
@@ -118,193 +113,7 @@ def flatten_tests(all_tests)
   flattened
 end
 
-def generate_benchmark_script(gem_config, all_tests, subset_indices: nil, report_passed_indices: false)
-  flattened_tests = flatten_tests(all_tests)
-
-  # If a subset is given, filter to only those indices
-  if subset_indices
-    flattened_tests = subset_indices.map { |i| flattened_tests[i] }
-  end
-
-  tests_json = JSON.generate(flattened_tests)
-
-  report_indices_code = report_passed_indices ? <<~RUBY_FRAG : 'passed_indices = []'
-    passed_indices_set = {}
-    1.times do
-      TESTS.each_with_index do |test, idx|
-        logic = test['rule']
-        data  = test['data']
-        expects_error = !test['error'].nil?
-        expected = test['result']
-        begin
-          result = #{gem_config[:call]}
-          if !expects_error && results_equal?(result, expected)
-            passed_indices_set[idx] = true
-          elsif expects_error
-            expected_type = test.dig('error', 'type')
-            passed_indices_set[idx] = true if expected_type.nil? || result.nil?
-          end
-        rescue => e
-          if expects_error
-            expected_type = test.dig('error', 'type')
-            passed_indices_set[idx] = true if expected_type.nil? || e.message.include?(expected_type.to_s) || e.class.to_s.include?(expected_type.to_s)
-          end
-        end
-      end
-    end
-    passed_indices = passed_indices_set.keys
-  RUBY_FRAG
-
-  <<~RUBY
-    $stdout = File.open(File::NULL, 'w')
-    $stderr = File.open(File::NULL, 'w')
-
-    require 'bundler/inline'
-
-    begin
-      gemfile(quiet: true) do
-        source 'https://rubygems.org'
-        gem '#{gem_config[:gem]}'
-      end
-    rescue => e
-      $stdout = STDOUT
-      puts "BENCHMARK_RESULT:" + { status: 'error', error: e.message }.to_json
-      exit 0
-    end
-
-    $stdout = STDOUT
-    $stderr = STDERR
-
-    require '#{gem_config[:require]}'
-    require 'json'
-
-    gem_version = begin
-      #{gem_config[:version_call]}
-    rescue
-      'unknown'
-    end
-
-    TESTS = JSON.parse(<<-'JSON_END'
-    #{tests_json}
-    JSON_END
-    )
-
-    def results_equal?(actual, expected)
-      if expected.is_a?(Float) && actual.is_a?(Float)
-        (actual - expected).abs < 0.0001
-      elsif expected.is_a?(Array) && actual.is_a?(Array)
-        return false unless expected.size == actual.size
-        expected.zip(actual).all? { |e, a| results_equal?(a, e) }
-      elsif expected.is_a?(Hash) && actual.is_a?(Hash)
-        return false unless expected.keys.sort == actual.keys.sort
-        expected.keys.all? { |k| results_equal?(actual[k], expected[k]) }
-      else
-        actual == expected
-      end
-    end
-
-    # Memory measurement (cross-platform: Linux and macOS)
-    def memory_kb
-      `ps -o rss= -p \#{Process.pid}`.to_i
-    end
-
-    # Warmup
-    #{WARMUP_ITERATIONS}.times do
-      TESTS.each do |test|
-        begin
-          #{gem_config[:call].gsub('logic', 'test["rule"]').gsub('data', 'test["data"]')}
-        rescue
-        end
-      end
-    end
-
-    # Collect passed indices (first pass, no timing)
-    #{report_indices_code}
-
-    # Benchmark with correctness checking
-    total_passed = 0
-    total_failed = 0
-    total_time_passed = 0.0
-    peak_memory_kb = memory_kb
-    memory_before = memory_kb
-
-    #{BENCHMARK_ITERATIONS}.times do
-      TESTS.each do |test|
-        logic = test['rule']
-        data = test['data']
-        expects_error = !test['error'].nil?
-        expected = test['result']
-
-        begin
-          start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          result = #{gem_config[:call]}
-          elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-          elapsed_us = elapsed * 1_000_000
-
-          if expects_error
-            total_failed += 1
-          elsif results_equal?(result, expected)
-            total_passed += 1
-            total_time_passed += elapsed_us
-          else
-            total_failed += 1
-          end
-    #{'      '}
-          # Track peak memory
-          current_mem = memory_kb
-          peak_memory_kb = current_mem if current_mem > peak_memory_kb
-        rescue => e
-          elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time rescue 0
-          elapsed_us = elapsed * 1_000_000
-
-          if expects_error
-            expected_type = test.dig('error', 'type')
-            if expected_type.nil? || e.message.include?(expected_type.to_s) || e.class.to_s.include?(expected_type.to_s)
-              total_passed += 1
-              total_time_passed += elapsed_us
-            else
-              total_failed += 1
-            end
-          else
-            total_failed += 1
-          end
-    #{'      '}
-          # Track peak memory
-          current_mem = memory_kb
-          peak_memory_kb = current_mem if current_mem > peak_memory_kb
-        end
-      end
-    end
-
-    # Calculate metrics
-    memory_after = memory_kb
-    total_tests = total_passed + total_failed
-    pass_rate = total_tests > 0 ? (total_passed.to_f / total_tests * 100).round(2) : 0
-    avg_time_per_passed_us = total_passed > 0 ? (total_time_passed / total_passed).round(3) : 0
-    ops_per_second = total_passed > 0 ? (total_passed / (total_time_passed / 1_000_000)).round(2) : 0
-
-    # Memory metrics
-    peak_memory_mb = (peak_memory_kb / 1024.0).round(2)
-    memory_delta_mb = ((memory_after - memory_before) / 1024.0).round(2)
-    # Memory per operation (bytes per passed test, averaged over iterations)
-    memory_per_op_bytes = total_passed > 0 ? (((memory_after - memory_before) * 1024.0) / (total_passed / #{BENCHMARK_ITERATIONS})).round(2) : 0
-
-    puts "BENCHMARK_RESULT:" + JSON.generate({
-      version: gem_version,
-      status: 'success',
-      total_tests: total_tests / #{BENCHMARK_ITERATIONS},
-      passed: total_passed / #{BENCHMARK_ITERATIONS},
-      failed: total_failed / #{BENCHMARK_ITERATIONS},
-      pass_rate: pass_rate,
-      avg_time_us: avg_time_per_passed_us,
-      ops_per_second: ops_per_second,
-      peak_memory_mb: peak_memory_mb,
-      memory_delta_mb: memory_delta_mb,
-      memory_per_op_bytes: memory_per_op_bytes,
-      passed_indices: passed_indices
-    })
-  RUBY
-end
+RUNNER_SCRIPT = File.join(SCRIPT_DIR, 'benchmark_runner.rb')
 
 def run_benchmark(_gem_name, gem_config, all_tests, subset_indices: nil, report_passed_indices: false)
   current = Gem::Version.new(ruby_version)
@@ -318,32 +127,38 @@ def run_benchmark(_gem_name, gem_config, all_tests, subset_indices: nil, report_
     }
   end
 
-  script = generate_benchmark_script(gem_config, all_tests, subset_indices: subset_indices, report_passed_indices: report_passed_indices)
+  flattened_tests = flatten_tests(all_tests)
+  flattened_tests = subset_indices.map { |i| flattened_tests[i] } if subset_indices
+
+  config = JSON.generate({
+    'gem' => gem_config[:gem],
+    'require' => gem_config[:require],
+    'adapter' => gem_config[:adapter],
+    'tests' => flattened_tests,
+    'warmup_iterations' => WARMUP_ITERATIONS,
+    'benchmark_iterations' => BENCHMARK_ITERATIONS,
+    'report_passed_indices' => report_passed_indices
+  })
+
   ruby_exe = RbConfig.ruby
+  stdout, stderr, status = Open3.capture3(ruby_exe, RUNNER_SCRIPT, config)
 
-  Dir.mktmpdir do |tmpdir|
-    script_file = File.join(tmpdir, 'benchmark.rb')
-    File.write(script_file, script)
-
-    stdout, stderr, status = Open3.capture3(ruby_exe, script_file, chdir: tmpdir)
-
-    if stdout.include?('BENCHMARK_RESULT:')
-      json_str = stdout.split('BENCHMARK_RESULT:').last.strip
-      begin
-        return JSON.parse(json_str)
-      rescue JSON::ParserError
-        return { 'status' => 'error', 'error' => "Invalid JSON: #{json_str[0..100]}" }
-      end
+  if stdout.include?('BENCHMARK_RESULT:')
+    json_str = stdout.split('BENCHMARK_RESULT:').last.strip
+    begin
+      return JSON.parse(json_str)
+    rescue JSON::ParserError
+      return { 'status' => 'error', 'error' => "Invalid JSON: #{json_str[0..100]}" }
     end
-
-    stderr_clean = stderr.lines.reject { |l| l.include?('warning:') }.join.strip
-
-    unless status.success?
-      return { 'status' => 'error', 'error' => stderr_clean.empty? ? 'Unknown error' : stderr_clean[0..200] }
-    end
-
-    { 'status' => 'error', 'error' => 'No benchmark result found' }
   end
+
+  stderr_clean = stderr.lines.reject { |l| l.include?('warning:') }.join.strip
+
+  unless status.success?
+    return { 'status' => 'error', 'error' => stderr_clean.empty? ? 'Unknown error' : stderr_clean[0..200] }
+  end
+
+  { 'status' => 'error', 'error' => 'No benchmark result found' }
 end
 
 def format_number(n)
@@ -551,12 +366,6 @@ def main
   output_file = File.join(dated_results_dir, filename)
   File.write(output_file, JSON.pretty_generate(json_output))
   puts "Results saved to: #{output_file}"
-
-  latest_dir = File.join(SCRIPT_DIR, 'results', 'latest')
-  FileUtils.mkdir_p(latest_dir)
-  latest_file = File.join(latest_dir, filename)
-  File.write(latest_file, JSON.pretty_generate(json_output))
-  puts "Latest results updated: #{latest_file}"
 end
 
 main
