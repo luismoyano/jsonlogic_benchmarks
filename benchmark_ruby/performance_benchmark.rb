@@ -28,9 +28,37 @@ SCRIPT_DIR = File.dirname(__FILE__)
 ROOT_DIR = File.dirname(SCRIPT_DIR)
 TESTS_DIR = File.join(ROOT_DIR, 'tests')
 
+USE_YJIT = ARGV.include?('--yjit')
+
+# --date YYYY-MM-DD  → override the output folder date (for backfill)
+OVERRIDE_DATE = begin
+  idx = ARGV.index('--date')
+  idx ? ARGV[idx + 1] : nil
+end
+
+# --gem-version GEM_NAME=VERSION  → pin a specific gem version (for backfill)
+# Multiple flags are allowed, one per gem.
+GEM_VERSION_OVERRIDES = ARGV.each_with_object({}) do |arg, h|
+  next unless arg.start_with?('--gem-version')
+  # support both "--gem-version name=ver" (two-token) and (ignored single-token form)
+  if arg.include?('=') && arg != '--gem-version'
+    pair = arg.sub('--gem-version', '').sub(/^[= ]+/, '')
+    name, ver = pair.split('=', 2)
+    h[name] = ver if name && ver
+  end
+end
+# Also handle two-token form: ["--gem-version", "name=ver"]
+ARGV.each_with_index do |arg, i|
+  next unless arg == '--gem-version'
+  pair = ARGV[i + 1]
+  next unless pair&.include?('=')
+  name, ver = pair.split('=', 2)
+  GEM_VERSION_OVERRIDES[name] = ver if name && ver
+end
+
 # Number of iterations for timing
-WARMUP_ITERATIONS = 2
-BENCHMARK_ITERATIONS = 5
+WARMUP_ITERATIONS = 10
+BENCHMARK_ITERATIONS = 10
 
 # Gems to benchmark
 GEMS = {
@@ -115,7 +143,7 @@ end
 
 RUNNER_SCRIPT = File.join(SCRIPT_DIR, 'benchmark_runner.rb')
 
-def run_benchmark(_gem_name, gem_config, all_tests, subset_indices: nil, report_passed_indices: false)
+def run_benchmark(_gem_name, gem_config, all_tests, subset_indices: nil, report_passed_indices: false, gem_version: nil)
   current = Gem::Version.new(ruby_version)
   min_required = Gem::Version.new(gem_config[:min_ruby])
 
@@ -130,7 +158,7 @@ def run_benchmark(_gem_name, gem_config, all_tests, subset_indices: nil, report_
   flattened_tests = flatten_tests(all_tests)
   flattened_tests = subset_indices.map { |i| flattened_tests[i] } if subset_indices
 
-  config = JSON.generate({
+  config_hash = {
     'gem' => gem_config[:gem],
     'require' => gem_config[:require],
     'adapter' => gem_config[:adapter],
@@ -138,10 +166,14 @@ def run_benchmark(_gem_name, gem_config, all_tests, subset_indices: nil, report_
     'warmup_iterations' => WARMUP_ITERATIONS,
     'benchmark_iterations' => BENCHMARK_ITERATIONS,
     'report_passed_indices' => report_passed_indices
-  })
+  }
+  config_hash['gem_version'] = gem_version if gem_version
+
+  config = JSON.generate(config_hash)
 
   ruby_exe = RbConfig.ruby
-  stdout, stderr, status = Open3.capture3(ruby_exe, RUNNER_SCRIPT, config)
+  cmd = USE_YJIT ? [ruby_exe, '--yjit', RUNNER_SCRIPT, config] : [ruby_exe, RUNNER_SCRIPT, config]
+  stdout, stderr, status = Open3.capture3(*cmd)
 
   if stdout.include?('BENCHMARK_RESULT:')
     json_str = stdout.split('BENCHMARK_RESULT:').last.strip
@@ -220,6 +252,9 @@ def main
   puts
   puts "Ruby version: #{RUBY_VERSION}"
   puts "Ruby platform: #{RUBY_PLATFORM}"
+  puts "YJIT: #{USE_YJIT ? 'enabled' : 'disabled'}"
+  puts "Date override: #{OVERRIDE_DATE}" if OVERRIDE_DATE
+  puts "Gem version overrides: #{GEM_VERSION_OVERRIDES}" unless GEM_VERSION_OVERRIDES.empty?
   puts "Warmup iterations: #{WARMUP_ITERATIONS}"
   puts "Benchmark iterations: #{BENCHMARK_ITERATIONS}"
   puts
@@ -244,7 +279,9 @@ def main
     print "Benchmarking #{gem_name}... "
     $stdout.flush
 
-    result = run_benchmark(gem_name, gem_config, all_tests, report_passed_indices: true)
+    result = run_benchmark(gem_name, gem_config, all_tests,
+                           report_passed_indices: true,
+                           gem_version: GEM_VERSION_OVERRIDES[gem_name])
     results[gem_name] = result
 
     case result['status']
@@ -307,7 +344,9 @@ def main
       print "Benchmarking #{gem_name} (#{intersection.size} common tests)... "
       $stdout.flush
 
-      result = run_benchmark(gem_name, gem_config, all_tests, subset_indices: intersection)
+      result = run_benchmark(gem_name, gem_config, all_tests,
+                             subset_indices: intersection,
+                             gem_version: GEM_VERSION_OVERRIDES[gem_name])
       # Carry over version and pass_rate from mode 1 for display
       result['version'] ||= results[gem_name]['version']
       comparable_results[gem_name] = result
@@ -352,17 +391,19 @@ def main
     'language_version' => RUBY_VERSION,
     'platform' => RUBY_PLATFORM,
     'os' => os_name,
+    'yjit' => USE_YJIT,
     'timestamp' => timestamp.iso8601,
     'total_tests' => total_test_count,
     'results' => results,
     'comparable_results' => comparable_results
   }
 
-  date_str = timestamp.strftime('%Y-%m-%d')
+  date_str = OVERRIDE_DATE || timestamp.strftime('%Y-%m-%d')
   dated_results_dir = File.join(SCRIPT_DIR, 'results', date_str)
   FileUtils.mkdir_p(dated_results_dir)
 
-  filename = "ruby_#{RUBY_VERSION}_#{os_name}.json"
+  yjit_suffix = USE_YJIT ? '_yjit' : ''
+  filename = "ruby_#{RUBY_VERSION}_#{os_name}#{yjit_suffix}.json"
   output_file = File.join(dated_results_dir, filename)
   File.write(output_file, JSON.pretty_generate(json_output))
   puts "Results saved to: #{output_file}"

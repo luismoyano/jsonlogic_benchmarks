@@ -28,11 +28,16 @@ require 'bundler/inline'
 
 config = JSON.parse(ARGV[0])
 
+# Honor pinned gem version when specified (used by backfill)
+GEM_VERSION_PIN = config['gem_version']
+
 begin
   gemfile(quiet: true) do
     source 'https://rubygems.org'
     if config['local_path']
       gem config['gem'], path: config['local_path']
+    elsif GEM_VERSION_PIN
+      gem config['gem'], GEM_VERSION_PIN
     else
       gem config['gem']
     end
