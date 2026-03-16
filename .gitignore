@@ -5,6 +5,11 @@ tests/
 *.gem
 Gemfile.lock
 
+# PHP — lock file and vendor are intentionally excluded so CI always
+# resolves the latest published versions of each library
+benchmark_php/composer.lock
+benchmark_php/vendor/
+
 # Local development scripts (not for CI)
 benchmark_ruby/local_benchmark.rb
 
