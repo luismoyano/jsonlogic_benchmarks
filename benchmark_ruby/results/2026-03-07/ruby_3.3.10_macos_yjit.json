@@ -1,10 +1,10 @@
 {
   "language": "ruby",
-  "language_version": "4.0.1",
-  "platform": "x86_64-linux",
-  "os": "linux",
+  "language_version": "3.3.10",
+  "platform": "arm64-darwin23",
+  "os": "macos",
   "yjit": true,
-  "timestamp": "2026-03-06T23:06:56+00:00",
+  "timestamp": "2026-03-07T07:33:12+00:00",
   "total_tests": 601,
   "results": {
     "shiny_json_logic": {
@@ -14,11 +14,11 @@
       "passed": 601,
       "failed": 0,
       "pass_rate": 100.0,
-      "avg_time_us": 9.563,
-      "ops_per_second": 104566.29,
-      "peak_memory_mb": 132.1,
-      "memory_delta_mb": 7.77,
-      "memory_per_op_bytes": 13562.46,
+      "avg_time_us": 39.027,
+      "ops_per_second": 25623.43,
+      "peak_memory_mb": 182.03,
+      "memory_delta_mb": 13.16,
+      "memory_per_op_bytes": 22953.96,
       "passed_indices": [
         0,
         1,
@@ -630,11 +630,11 @@
       "passed": 563,
       "failed": 38,
       "pass_rate": 93.68,
-      "avg_time_us": 21.015,
-      "ops_per_second": 47583.98,
-      "peak_memory_mb": 141.92,
-      "memory_delta_mb": 15.0,
-      "memory_per_op_bytes": 27944.47,
+      "avg_time_us": 57.561,
+      "ops_per_second": 17372.95,
+      "peak_memory_mb": 171.3,
+      "memory_delta_mb": 5.48,
+      "memory_per_op_bytes": 10214.54,
       "passed_indices": [
         0,
         1,
@@ -1216,11 +1216,11 @@
       "passed": 383,
       "failed": 218,
       "pass_rate": 63.73,
-      "avg_time_us": 12.58,
-      "ops_per_second": 79489.27,
-      "peak_memory_mb": 134.9,
-      "memory_delta_mb": 12.16,
-      "memory_per_op_bytes": 33281.34,
+      "avg_time_us": 34.382,
+      "ops_per_second": 29085.0,
+      "peak_memory_mb": 166.88,
+      "memory_delta_mb": 8.17,
+      "memory_per_op_bytes": 22372.93,
       "passed_indices": [
         0,
         1,
@@ -1621,11 +1621,11 @@
       "passed": 262,
       "failed": 339,
       "pass_rate": 43.59,
-      "avg_time_us": 14.081,
-      "ops_per_second": 71018.8,
-      "peak_memory_mb": 196.45,
-      "memory_delta_mb": 12.18,
-      "memory_per_op_bytes": 48729.89,
+      "avg_time_us": 41.977,
+      "ops_per_second": 23822.3,
+      "peak_memory_mb": 178.61,
+      "memory_delta_mb": 3.55,
+      "memory_per_op_bytes": 14195.3,
       "passed_indices": [
         0,
         1,
@@ -1902,12 +1902,14 @@
       "passed": 257,
       "failed": 0,
       "pass_rate": 100.0,
-      "avg_time_us": 8.426,
-      "ops_per_second": 118674.1,
-      "peak_memory_mb": 120.15,
-      "memory_delta_mb": 4.39,
-      "memory_per_op_bytes": 17898.09,
-      "passed_indices": []
+      "avg_time_us": 26.298,
+      "ops_per_second": 38025.63,
+      "peak_memory_mb": 154.28,
+      "memory_delta_mb": 5.92,
+      "memory_per_op_bytes": 24161.62,
+      "passed_indices": [
+
+      ]
     },
     "json-logic-rb": {
       "version": "0.2.0",
@@ -1916,12 +1918,14 @@
       "passed": 255,
       "failed": 2,
       "pass_rate": 99.22,
-      "avg_time_us": 12.871,
-      "ops_per_second": 77692.95,
-      "peak_memory_mb": 122.44,
-      "memory_delta_mb": 6.41,
-      "memory_per_op_bytes": 26375.03,
-      "passed_indices": []
+      "avg_time_us": 44.511,
+      "ops_per_second": 22466.37,
+      "peak_memory_mb": 150.48,
+      "memory_delta_mb": 7.39,
+      "memory_per_op_bytes": 30390.71,
+      "passed_indices": [
+
+      ]
     },
     "json_logic": {
       "version": "0.4.7",
@@ -1930,12 +1934,14 @@
       "passed": 255,
       "failed": 2,
       "pass_rate": 99.22,
-      "avg_time_us": 12.25,
-      "ops_per_second": 81632.77,
-      "peak_memory_mb": 122.02,
-      "memory_delta_mb": 5.64,
-      "memory_per_op_bytes": 23178.54,
-      "passed_indices": []
+      "avg_time_us": 33.505,
+      "ops_per_second": 29846.55,
+      "peak_memory_mb": 158.22,
+      "memory_delta_mb": 9.27,
+      "memory_per_op_bytes": 38100.83,
+      "passed_indices": [
+
+      ]
     },
     "json_logic_ruby": {
       "version": "0.2.4",
@@ -1944,12 +1950,14 @@
       "passed": 255,
       "failed": 2,
       "pass_rate": 99.22,
-      "avg_time_us": 12.855,
-      "ops_per_second": 77787.83,
-      "peak_memory_mb": 152.91,
-      "memory_delta_mb": 6.83,
-      "memory_per_op_bytes": 28077.68,
-      "passed_indices": []
+      "avg_time_us": 52.142,
+      "ops_per_second": 19178.41,
+      "peak_memory_mb": 186.16,
+      "memory_delta_mb": 3.0,
+      "memory_per_op_bytes": 12336.19,
+      "passed_indices": [
+
+      ]
     }
   }
 }
