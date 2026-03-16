@@ -15,6 +15,7 @@
  *   warmup_iterations     - int
  *   benchmark_iterations  - int
  *   report_passed_indices - bool
+ *   decode_mode           - 'stdclass' (default) or 'arrays'
  *   lib_version           - (optional) version string override
  */
 
@@ -30,6 +31,18 @@ $tests                = $config['tests'];
 $warmup_iterations    = $config['warmup_iterations'];
 $bench_iterations     = $config['benchmark_iterations'];
 $report_indices       = $config['report_passed_indices'] ?? false;
+$decode_mode          = $config['decode_mode'] ?? 'stdclass';
+
+// Re-decode rule/data with the correct mode.
+// Tests arrive as PHP arrays (via json_encode/json_decode in the orchestrator).
+// Re-serialising and decoding with the chosen mode ensures stdclass mode
+// preserves empty objects ({} → stdClass) while arrays mode keeps [] for them.
+$use_assoc = ($decode_mode === 'arrays');
+foreach ($tests as &$test) {
+    $test['rule'] = json_decode(json_encode($test['rule']), $use_assoc);
+    $test['data'] = json_decode(json_encode($test['data']), $use_assoc);
+}
+unset($test);
 
 // Resolve vendor autoload relative to this script's repo root
 $vendor_autoload = __DIR__ . '/vendor/autoload.php';

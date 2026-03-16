@@ -39,6 +39,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         php-version: ['8.1', '8.2', '8.3']
+        decode_mode: [stdclass, arrays]
 
     steps:
       - name: Checkout repository
@@ -60,13 +61,18 @@ jobs:
         run: composer install --no-dev --optimize-autoloader
         working-directory: benchmark_php
 
-      - name: Run benchmark
-        run: php benchmark_php/performance_benchmark.php
+      - name: Run benchmark (${{ matrix.decode_mode }})
+        run: |
+          ARRAYS_FLAG=""
+          if [ "${{ matrix.decode_mode }}" = "arrays" ]; then
+            ARRAYS_FLAG="--arrays"
+          fi
+          php benchmark_php/performance_benchmark.php $ARRAYS_FLAG
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: results-php-${{ matrix.os }}-php-${{ matrix.php-version }}
+          name: results-php-${{ matrix.os }}-php-${{ matrix.php-version }}-${{ matrix.decode_mode }}
           path: benchmark_php/results/
           retention-days: 1
 

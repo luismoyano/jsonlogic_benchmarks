@@ -17,7 +17,11 @@
  *   - jwadhams/json-logic-php (https://packagist.org/packages/jwadhams/json-logic-php)
  *
  * Usage:
- *   php performance_benchmark.php [--date YYYY-MM-DD] [--lib-version NAME=VERSION]
+ *   php performance_benchmark.php [--arrays] [--date YYYY-MM-DD] [--lib-version NAME=VERSION]
+ *
+ * Decode modes:
+ *   (default)  stdclass — json_decode without true flag (full spec compliance)
+ *   --arrays   arrays   — json_decode with true flag    (associative arrays)
  */
 
 $SCRIPT_DIR = __DIR__;
@@ -29,6 +33,7 @@ $args = array_slice($argv, 1);
 
 $OVERRIDE_DATE = null;
 $LIB_VERSION_OVERRIDES = [];
+$DECODE_MODE = 'stdclass'; // default
 
 for ($i = 0; $i < count($args); $i++) {
     if ($args[$i] === '--date' && isset($args[$i + 1])) {
@@ -36,6 +41,8 @@ for ($i = 0; $i < count($args); $i++) {
     } elseif ($args[$i] === '--lib-version' && isset($args[$i + 1])) {
         [$name, $ver] = explode('=', $args[++$i], 2);
         $LIB_VERSION_OVERRIDES[$name] = $ver;
+    } elseif ($args[$i] === '--arrays') {
+        $DECODE_MODE = 'arrays';
     }
 }
 
@@ -179,7 +186,8 @@ function run_benchmark(
     array  $all_tests,
     array  $subset_indices = [],
     bool   $report_passed_indices = false,
-    string $lib_version_override = ''
+    string $lib_version_override = '',
+    string $decode_mode = 'stdclass'
 ): array {
     $current_php = php_version_string();
     $min_php     = $lib_config['min_php'];
@@ -200,6 +208,7 @@ function run_benchmark(
         'warmup_iterations'     => WARMUP_ITERATIONS,
         'benchmark_iterations'  => BENCHMARK_ITERATIONS,
         'report_passed_indices' => $report_passed_indices,
+        'decode_mode'           => $decode_mode,
     ];
     if ($lib_version_override !== '') {
         $config['lib_version'] = $lib_version_override;
@@ -314,14 +323,15 @@ function print_comparable_results_table(array $results, int $common_count): void
 // Main
 // ---------------------------------------------------------------------------
 
-function main(string $tests_dir, ?string $override_date, array $lib_version_overrides): void
+function main(string $tests_dir, ?string $override_date, array $lib_version_overrides, string $decode_mode): void
 {
     echo str_repeat('=', 70) . "\n";
-    echo "JSON LOGIC PHP - PERFORMANCE & COMPATIBILITY BENCHMARK\n";
+    echo "RESULTS SUMMARY - Mode 1 ($decode_mode, own passing tests)\n";
     echo str_repeat('=', 70) . "\n\n";
 
     echo "PHP version: " . php_version_string() . "\n";
     echo "PHP platform: " . PHP_OS . "\n";
+    echo "Decode mode: $decode_mode\n";
     if ($override_date) {
         echo "Date override: $override_date\n";
     }
@@ -339,7 +349,7 @@ function main(string $tests_dir, ?string $override_date, array $lib_version_over
     // -----------------------------------------------------------------------
     // MODE 1: Each library measured on its own passing tests
     // -----------------------------------------------------------------------
-    echo "--- Mode 1: Each library measured on its own passing tests ---\n\n";
+    echo "--- Mode 1 ($decode_mode): Each library measured on its own passing tests ---\n\n";
 
     $results = [];
 
@@ -353,7 +363,8 @@ function main(string $tests_dir, ?string $override_date, array $lib_version_over
             $all_tests,
             [],
             true,
-            $lib_version_overrides[$lib_name] ?? ''
+            $lib_version_overrides[$lib_name] ?? '',
+            $decode_mode
         );
         $results[$lib_name] = $result;
 
@@ -386,7 +397,7 @@ function main(string $tests_dir, ?string $override_date, array $lib_version_over
     // -----------------------------------------------------------------------
     // MODE 2: Intersection of passed tests
     // -----------------------------------------------------------------------
-    echo "--- Mode 2: All libraries measured on common passing tests (intersection) ---\n\n";
+    echo "--- Mode 2 ($decode_mode): All libraries measured on common passing tests (intersection) ---\n\n";
 
     $per_lib_indices = [];
     foreach ($results as $lib_name => $result) {
@@ -423,7 +434,8 @@ function main(string $tests_dir, ?string $override_date, array $lib_version_over
                 $all_tests,
                 $intersection,
                 false,
-                $lib_version_overrides[$lib_name] ?? ''
+                $lib_version_overrides[$lib_name] ?? '',
+                $decode_mode
             );
             $result['version'] ??= $results[$lib_name]['version'] ?? 'unknown';
             $comparable_results[$lib_name] = $result;
@@ -438,7 +450,7 @@ function main(string $tests_dir, ?string $override_date, array $lib_version_over
         }
 
         echo "\n" . str_repeat('=', 70) . "\n";
-        echo "RESULTS SUMMARY - Mode 2 (" . count($intersection) . " common tests)\n";
+        echo "RESULTS SUMMARY - Mode 2 ($decode_mode, " . count($intersection) . " common tests)\n";
         echo str_repeat('=', 70) . "\n\n";
 
         print_comparable_results_table($comparable_results, count($intersection));
@@ -464,6 +476,7 @@ function main(string $tests_dir, ?string $override_date, array $lib_version_over
         'language_version'   => php_version_string(),
         'platform'           => PHP_OS,
         'os'                 => $os_name,
+        'decode_mode'        => $decode_mode,
         'timestamp'          => $timestamp,
         'total_tests'        => $total_test_count,
         'results'            => $results,
@@ -476,10 +489,10 @@ function main(string $tests_dir, ?string $override_date, array $lib_version_over
         mkdir($dated_results_dir, 0755, true);
     }
 
-    $filename    = "php_" . php_version_string() . "_$os_name.json";
+    $filename    = "php_" . php_version_string() . "_" . $os_name . "_" . $decode_mode . ".json";
     $output_file = "$dated_results_dir/$filename";
     file_put_contents($output_file, json_encode($json_output, JSON_PRETTY_PRINT));
     echo "Results saved to: $output_file\n";
 }
 
-main($TESTS_DIR, $OVERRIDE_DATE, $LIB_VERSION_OVERRIDES);
+main($TESTS_DIR, $OVERRIDE_DATE, $LIB_VERSION_OVERRIDES, $DECODE_MODE);

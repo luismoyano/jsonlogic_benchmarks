@@ -69,10 +69,11 @@ Results are written to `benchmark_ruby/results/<date>/ruby_<version>_<os>.json`.
 cd benchmark_php && composer install && cd ..
 
 # 3. Run the benchmark
-php benchmark_php/performance_benchmark.php
+php benchmark_php/performance_benchmark.php            # stdclass mode (default, full spec compliance)
+php benchmark_php/performance_benchmark.php --arrays   # arrays mode (json_decode with assoc flag)
 ```
 
-Results are written to `benchmark_php/results/<date>/php_<version>_<os>.json`.
+Results are written to `benchmark_php/results/<date>/php_<version>_<os>_<stdclass|arrays>.json`.
 
 ## Project Structure
 
@@ -133,6 +134,7 @@ jsonlogic_benchmarks/
 - **Two modes**:
   - **Mode 1** — each library measured against its own passing tests (shows correctness + peak performance)
   - **Mode 2** — all libraries measured on the intersection of tests they all pass (apples-to-apples comparison)
+- **PHP decode modes**: benchmarks run twice per PHP version — `stdclass` (`json_decode` without assoc flag, full spec compliance) and `arrays` (`json_decode` with assoc flag). stdclass is the canonical mode; arrays mode documents the 1-test gap caused by `{}` / `[]` being indistinguishable in PHP associative arrays.
 - **Error handling**: Tests expecting errors (`{"error": {"type": "..."}}`) pass only if the library raises; fail if it returns a value
 - **Consistency**: GitHub Actions runners provide consistent hardware across runs
 
