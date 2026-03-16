@@ -187,6 +187,28 @@ function results_equal(mixed $actual, mixed $expected): bool
         }
         return true;
     }
+    // stdClass objects: compare structurally (two stdClass, or stdClass vs assoc array)
+    $exp_is_obj = $expected instanceof \stdClass;
+    $act_is_obj = $actual instanceof \stdClass;
+    if ($exp_is_obj || $act_is_obj) {
+        $exp_arr = $exp_is_obj ? (array)$expected : $expected;
+        $act_arr = $act_is_obj ? (array)$actual   : $actual;
+        if (!is_array($exp_arr) || !is_array($act_arr)) {
+            return false;
+        }
+        if (count($exp_arr) !== count($act_arr)) {
+            return false;
+        }
+        foreach ($exp_arr as $k => $v) {
+            if (!array_key_exists($k, $act_arr)) {
+                return false;
+            }
+            if (!results_equal($act_arr[$k], $v)) {
+                return false;
+            }
+        }
+        return true;
+    }
     return $actual === $expected;
 }
 

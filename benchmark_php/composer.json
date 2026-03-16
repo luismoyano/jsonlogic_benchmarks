@@ -3,7 +3,7 @@
   "description": "PHP JSON Logic benchmark runner",
   "require": {
     "php": ">=8.1",
-    "shiny/json-logic-php": "*",
+    "shiny/json-logic-php": "0.1.1",
     "jwadhams/json-logic-php": "*"
   },
   "config": {
