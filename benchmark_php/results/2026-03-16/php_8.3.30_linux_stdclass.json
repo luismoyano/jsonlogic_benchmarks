@@ -4,7 +4,7 @@
     "platform": "Linux",
     "os": "linux",
     "decode_mode": "stdclass",
-    "timestamp": "2026-03-16T18:27:48+00:00",
+    "timestamp": "2026-03-16T18:33:55+00:00",
     "total_tests": 601,
     "results": {
         "shiny\/json-logic-php": {
@@ -14,8 +14,8 @@
             "passed": 596,
             "failed": 5,
             "pass_rate": 99.17,
-            "avg_time_us": 21.843,
-            "ops_per_second": 45780.71,
+            "avg_time_us": 22.049,
+            "ops_per_second": 45354.52,
             "peak_memory_mb": 4,
             "memory_delta_mb": 0,
             "passed_indices": [
@@ -624,8 +624,8 @@
             "passed": 383,
             "failed": 218,
             "pass_rate": 63.73,
-            "avg_time_us": 20.854,
-            "ops_per_second": 47952.73,
+            "avg_time_us": 21.004,
+            "ops_per_second": 47610.77,
             "peak_memory_mb": 4,
             "memory_delta_mb": 0,
             "passed_indices": [
@@ -1023,8 +1023,8 @@
             "passed": 383,
             "failed": 0,
             "pass_rate": 100,
-            "avg_time_us": 20.822,
-            "ops_per_second": 48026.85,
+            "avg_time_us": 20.722,
+            "ops_per_second": 48258.26,
             "peak_memory_mb": 2,
             "memory_delta_mb": 0,
             "passed_indices": []
@@ -1036,8 +1036,8 @@
             "passed": 383,
             "failed": 0,
             "pass_rate": 100,
-            "avg_time_us": 20.832,
-            "ops_per_second": 48002.97,
+            "avg_time_us": 20.879,
+            "ops_per_second": 47894.3,
             "peak_memory_mb": 2,
             "memory_delta_mb": 0,
             "passed_indices": []
