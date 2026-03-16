@@ -33,14 +33,14 @@ $bench_iterations     = $config['benchmark_iterations'];
 $report_indices       = $config['report_passed_indices'] ?? false;
 $decode_mode          = $config['decode_mode'] ?? 'stdclass';
 
-// Re-decode rule/data with the correct mode.
-// Tests arrive as PHP arrays (via json_encode/json_decode in the orchestrator).
-// Re-serialising and decoding with the chosen mode ensures stdclass mode
-// preserves empty objects ({} → stdClass) while arrays mode keeps [] for them.
+// Tests arrive with rule_json/data_json/result_json as raw JSON strings.
+// Decode them with the chosen mode so {} is preserved as stdClass in stdclass
+// mode, or becomes [] in arrays mode.
 $use_assoc = ($decode_mode === 'arrays');
 foreach ($tests as &$test) {
-    $test['rule'] = json_decode(json_encode($test['rule']), $use_assoc);
-    $test['data'] = json_decode(json_encode($test['data']), $use_assoc);
+    $test['rule']   = json_decode($test['rule_json']   ?? 'null', $use_assoc);
+    $test['data']   = json_decode($test['data_json']   ?? 'null', $use_assoc);
+    $test['result'] = json_decode($test['result_json'] ?? 'null', $use_assoc);
 }
 unset($test);
 

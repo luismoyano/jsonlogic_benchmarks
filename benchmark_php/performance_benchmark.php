@@ -101,14 +101,33 @@ function load_test_suites(string $tests_dir): array
         $relative_path = ltrim(str_replace($tests_dir, '', $file->getPathname()), '/');
         $suite_name    = str_replace(['/', '\\'], '_', preg_replace('/\.json$/', '', $relative_path));
 
-        $raw = json_decode(file_get_contents($file->getPathname()), true);
+        $file_content = file_get_contents($file->getPathname());
+        $raw = json_decode($file_content, true);
         if (!is_array($raw)) {
             echo "  $relative_path: PARSE ERROR\n";
             continue;
         }
 
-        // Filter out comment strings, keep only test objects (associative arrays)
-        $tests = array_values(array_filter($raw, fn($item) => is_array($item) && array_is_assoc($item)));
+        // Re-parse the file as stdclass so we can json_encode each field back
+        // to a canonical JSON string that preserves {} vs [].
+        $raw_std = json_decode($file_content);
+
+        // Filter out comment strings (top-level strings in the array), keep
+        // only test objects. We use the assoc version to detect structure and
+        // the stdclass version to extract per-field JSON strings.
+        $tests = [];
+        foreach ($raw as $idx => $item) {
+            if (!is_array($item) || !array_is_assoc($item)) {
+                continue;
+            }
+            $item_std = $raw_std[$idx];
+            $tests[] = [
+                'rule_json'   => isset($item['rule'])   ? json_encode($item_std->rule)   : 'null',
+                'data_json'   => isset($item['data'])   ? json_encode($item_std->data)   : 'null',
+                'result_json' => isset($item['result']) ? json_encode($item_std->result) : 'null',
+                'error'       => $item['error'] ?? null,
+            ];
+        }
 
         if (count($tests) > 0) {
             $all_tests[$suite_name] = $tests;
@@ -133,10 +152,10 @@ function flatten_tests(array $all_tests): array
     foreach ($all_tests as $tests) {
         foreach ($tests as $test) {
             $flattened[] = [
-                'rule'   => $test['rule']   ?? null,
-                'data'   => $test['data']   ?? null,
-                'result' => $test['result'] ?? null,
-                'error'  => $test['error']  ?? null,
+                'rule_json'   => $test['rule_json']   ?? 'null',
+                'data_json'   => $test['data_json']   ?? 'null',
+                'result_json' => $test['result_json'] ?? 'null',
+                'error'       => $test['error']       ?? null,
             ];
         }
     }
