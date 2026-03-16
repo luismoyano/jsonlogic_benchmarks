@@ -1,0 +1,12 @@
+{
+  "name": "luismoyano/jsonlogic-php-benchmarks",
+  "description": "PHP JSON Logic benchmark runner",
+  "require": {
+    "php": ">=8.1",
+    "shiny/json-logic-php": "*",
+    "jwadhams/json-logic-php": "*"
+  },
+  "config": {
+    "optimize-autoloader": true
+  }
+}

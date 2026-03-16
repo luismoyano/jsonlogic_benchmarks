@@ -1,0 +1,121 @@
+name: php_benchmarks
+
+on:
+  # Run weekly on Sundays at 00:00 UTC (alongside Ruby benchmarks)
+  schedule:
+    - cron: '0 0 * * 0'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  # Download test suites once and share via artifact
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download test suites
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/download_tests.sh
+          ./scripts/download_tests.sh
+
+      - name: Upload test suites artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-suites-php
+          path: tests/
+          retention-days: 1
+
+  benchmark:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        php-version: ['8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download test suites artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-suites-php
+          path: tests/
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader
+        working-directory: benchmark_php
+
+      - name: Run benchmark
+        run: php benchmark_php/performance_benchmark.php
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-php-${{ matrix.os }}-php-${{ matrix.php-version }}
+          path: benchmark_php/results/
+          retention-days: 1
+
+  # Collect all results and commit in a single job to avoid conflicts
+  commit-results:
+    needs: benchmark
+    runs-on: ubuntu-latest
+    if: always() && needs.benchmark.result != 'cancelled'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-php-*
+          path: downloaded-results/
+          merge-multiple: false
+
+      - name: Merge results into results directory
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          mkdir -p benchmark_php/results/$DATE
+          mkdir -p benchmark_php/results/latest
+
+          for dir in downloaded-results/results-php-*/; do
+            if [ -d "$dir" ]; then
+              for date_dir in "$dir"*/; do
+                if [ -d "$date_dir" ]; then
+                  dirname=$(basename "$date_dir")
+                  if [ "$dirname" = "latest" ]; then
+                    cp -f "$date_dir"*.json benchmark_php/results/latest/ 2>/dev/null || true
+                  elif [[ "$dirname" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+                    mkdir -p "benchmark_php/results/$dirname"
+                    cp -f "$date_dir"*.json "benchmark_php/results/$dirname/" 2>/dev/null || true
+                  fi
+                fi
+              done
+            fi
+          done
+
+          echo "Results merged:"
+          find benchmark_php/results -name "*.json" | head -20
+
+      - name: Commit and push results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add benchmark_php/results/
+          git diff --staged --quiet || git commit -m "benchmark: PHP $(date +%Y-%m-%d)"
+          git push
