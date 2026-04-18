@@ -137,7 +137,7 @@ def run_shiny_benchmark(tests : Array(JSON::Any), subset_indices : Array(Int32)?
       rescue e : ShinyJsonLogic::Errors::Base
         if error_expected
           expected_type = error_expected.as_h["type"]?.try(&.as_s?)
-          payload_type  = e.payload.as_h["type"]?.try(&.as_s?)
+          payload_type  = e.payload["type"]?.try(&.as_s?)
           if expected_type.nil? || expected_type == payload_type
             passed_indices << idx
           end
@@ -177,7 +177,7 @@ def run_shiny_benchmark(tests : Array(JSON::Any), subset_indices : Array(Int32)?
         elapsed = (Time.monotonic - t0).total_microseconds
         if error_expected
           expected_type = error_expected.as_h["type"]?.try(&.as_s?)
-          payload_type  = e.payload.as_h["type"]?.try(&.as_s?)
+          payload_type  = e.payload["type"]?.try(&.as_s?)
           if expected_type.nil? || expected_type == payload_type
             total_passed += 1
             total_time_passed += elapsed
