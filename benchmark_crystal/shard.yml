@@ -8,7 +8,7 @@ authors:
 
 dependencies:
   shiny_json_logic:
-    github: luismoyano/shiny_json_logic_crystal
+    github: luismoyano/shiny-json-logic-crystal
 
 crystal: ">= 1.0.0"
 
