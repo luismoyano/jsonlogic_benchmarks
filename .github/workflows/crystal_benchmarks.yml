@@ -1,0 +1,128 @@
+name: crystal_benchmarks
+
+on:
+  # Run weekly on Sundays at 00:00 UTC (alongside Ruby and PHP benchmarks)
+  schedule:
+    - cron: '0 0 * * 0'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # Download test suites once and share via artifact
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download test suites
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/download_tests.sh
+          ./scripts/download_tests.sh
+
+      - name: Upload test suites artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-suites-crystal
+          path: tests/
+          retention-days: 1
+
+  benchmark:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        crystal-version: ['1.14.0', 'latest']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download test suites artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-suites-crystal
+          path: tests/
+
+      - name: Set up Crystal ${{ matrix.crystal-version }}
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal-version }}
+
+      - name: Install shards
+        run: shards install --without-development
+        working-directory: benchmark_crystal
+
+      - name: Build benchmark
+        run: crystal build performance_benchmark.cr -o performance_benchmark --release
+        working-directory: benchmark_crystal
+
+      - name: Run benchmark
+        run: ./performance_benchmark
+        working-directory: benchmark_crystal
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-crystal-${{ matrix.os }}-crystal-${{ matrix.crystal-version }}
+          path: benchmark_crystal/results/
+          retention-days: 1
+
+  # Collect all results and commit in a single job to avoid conflicts
+  commit-results:
+    needs: benchmark
+    runs-on: ubuntu-latest
+    if: always() && needs.benchmark.result != 'cancelled'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-crystal-*
+          path: downloaded-results/
+          merge-multiple: false
+
+      - name: Merge results into results directory
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          mkdir -p benchmark_crystal/results/$DATE
+          mkdir -p benchmark_crystal/results/latest
+
+          for dir in downloaded-results/results-crystal-*/; do
+            if [ -d "$dir" ]; then
+              for date_dir in "$dir"*/; do
+                if [ -d "$date_dir" ]; then
+                  dirname=$(basename "$date_dir")
+                  if [ "$dirname" = "latest" ]; then
+                    cp -f "$date_dir"*.json benchmark_crystal/results/latest/ 2>/dev/null || true
+                  elif [[ "$dirname" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+                    mkdir -p "benchmark_crystal/results/$dirname"
+                    cp -f "$date_dir"*.json "benchmark_crystal/results/$dirname/" 2>/dev/null || true
+                  fi
+                fi
+              done
+            fi
+          done
+
+          echo "Results merged:"
+          find benchmark_crystal/results -name "*.json" | head -20
+
+      - name: Commit and push results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add benchmark_crystal/results/
+          git diff --staged --quiet || git commit -m "benchmark: Crystal $(date +%Y-%m-%d)"
+          git push

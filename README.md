@@ -4,16 +4,17 @@ Automated benchmarks measuring **performance** and **correctness** of JSON Logic
 
 ## What We Measure
 
-- **Correctness**: Pass rate against the official test suite (601 tests from [json-logic/.github](https://github.com/json-logic/.github/tree/main/tests))
+- **Correctness**: Pass rate against the official test suite (613 tests from [json-logic/.github](https://github.com/json-logic/.github/tree/main/tests))
 - **Performance**: Operations per second (only counting passed tests)
 - **Cross-platform**: Ubuntu and macOS
 
 ## Languages
 
-| Language | Libraries | Versions |
-|----------|-----------|----------|
-| **Ruby** | `shiny_json_logic`, `json-logic-rb`, `json_logic`, `json_logic_ruby` | 2.7, 3.1, 3.2, 3.3, 3.4, 4.0 |
-| **PHP**  | `shiny/json-logic-php`, `jwadhams/json-logic-php` | 8.1, 8.2, 8.3 |
+| Language    | Libraries | Versions |
+|-------------|-----------|----------|
+| **Ruby**    | `shiny_json_logic`, `json-logic-rb`, `json_logic`, `json_logic_ruby` | 2.7, 3.1, 3.2, 3.3, 3.4, 4.0 |
+| **PHP**     | `shiny/json-logic-php`, `jwadhams/json-logic-php` | 8.1, 8.2, 8.3 |
+| **Crystal** | `shiny_json_logic` | 1.14, latest |
 
 ## Test Source
 
@@ -32,7 +33,8 @@ Weekly (Sunday 00:00 UTC)
 │  ┌───────────┐  ┌────────────────────────┐   │
 │  │ ubuntu    │  │ Ruby 2.7–4.0 (±YJIT)   │   │
 │  │ macos     │  │ PHP  8.1–8.3           │   │
-│  └───────────┘  └────────────────────────┘   │
+│  └───────────┘  │ Crystal 1.14, latest   │   │
+│                 └────────────────────────┘   │
 └──────────────────────────────────────────────┘
          │
          ▼
@@ -75,13 +77,31 @@ php benchmark_php/performance_benchmark.php --arrays   # arrays mode (json_decod
 
 Results are written to `benchmark_php/results/<date>/php_<version>_<os>_<stdclass|arrays>.json`.
 
+### Crystal
+
+```bash
+# 1. Download test suites (requires curl and jq)
+./scripts/download_tests.sh
+
+# 2. Install shards
+cd benchmark_crystal && shards install && cd ..
+
+# 3. Build and run
+cd benchmark_crystal
+crystal build performance_benchmark.cr -o performance_benchmark --release
+./performance_benchmark
+```
+
+Results are written to `benchmark_crystal/results/<date>/crystal_<version>_<os>.json`.
+
 ## Project Structure
 
 ```
 jsonlogic_benchmarks/
 ├── .github/workflows/
 │   ├── ruby_benchmarks.yml     # CI: weekly + manual trigger (Ruby)
-│   └── php_benchmarks.yml      # CI: weekly + manual trigger (PHP)
+│   ├── php_benchmarks.yml      # CI: weekly + manual trigger (PHP)
+│   └── crystal_benchmarks.yml  # CI: weekly + manual trigger (Crystal)
 ├── scripts/
 │   └── download_tests.sh       # Shared test downloader (all languages)
 ├── tests/                      # Downloaded tests (gitignored)
@@ -99,6 +119,11 @@ jsonlogic_benchmarks/
 │   ├── composer.json
 │   └── results/
 │       └── latest/
+├── benchmark_crystal/
+│   ├── performance_benchmark.cr
+│   ├── shard.yml
+│   └── results/
+│       └── latest/
 ├── CONTRIBUTING.md             # Guide for adding new languages
 └── README.md
 ```
@@ -112,7 +137,7 @@ jsonlogic_benchmarks/
   "platform": "arm64-darwin24",
   "os": "macos",
   "timestamp": "2026-02-20T16:21:21+01:00",
-  "total_tests": 601,
+  "total_tests": 613,
   "results": {
     "shiny_json_logic": {
       "version": "0.3.6",

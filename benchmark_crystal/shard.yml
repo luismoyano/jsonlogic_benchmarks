@@ -1,0 +1,15 @@
+name: benchmark_crystal
+version: 0.1.0
+
+description: Crystal benchmark for JSON Logic implementations
+
+authors:
+  - Luis Moyano
+
+dependencies:
+  shiny_json_logic:
+    github: luismoyano/shiny_json_logic_crystal
+
+crystal: ">= 1.0.0"
+
+license: MIT
