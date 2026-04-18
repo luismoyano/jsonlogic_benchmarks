@@ -17,6 +17,7 @@
 
 require "json"
 require "file_utils"
+require "shiny_json_logic"
 
 SCRIPT_DIR = File.dirname(Process.executable_path || __FILE__)
 ROOT_DIR   = File.dirname(SCRIPT_DIR)
@@ -96,10 +97,7 @@ def results_equal(actual : JSON::Any, expected : JSON::Any) : Bool
   end
 end
 
-def run_shiny_benchmark(tests : Array(JSON::Any), subset_indices : Array(Int32)? = nil, report_passed_indices : Bool = false) : Hash(String, JSON::Any)
-  require "shiny_json_logic"
-
-  test_set = if subset_indices
+def run_shiny_benchmark(tests : Array(JSON::Any), subset_indices : Array(Int32)? = nil, report_passed_indices : Bool = false) : Hash(String, JSON::Any)  test_set = if subset_indices
     subset_indices.map { |i| tests[i] }
   else
     tests
