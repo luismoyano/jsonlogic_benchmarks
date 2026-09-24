@@ -17,6 +17,7 @@
 #   - json-logic-rb (https://rubygems.org/gems/json-logic-rb)
 #   - json_logic (https://rubygems.org/gems/json_logic) - bhgames
 #   - json_logic_ruby (https://rubygems.org/gems/json_logic_ruby)
+#   - jlogic_ruby (https://rubygems.org/gems/jlogic_ruby) - maintained fork of json_logic
 #
 
 require 'json'
@@ -85,6 +86,12 @@ GEMS = {
     require: 'json_logic',
     adapter: 'json_logic_ruby',
     min_ruby: '3.2'
+  },
+  'jlogic_ruby' => {
+    gem: 'jlogic_ruby',
+    require: 'json_logic',
+    adapter: 'jlogic_ruby',
+    min_ruby: '2.2'
   }
 }
 

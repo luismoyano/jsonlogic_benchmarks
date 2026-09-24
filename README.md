@@ -12,7 +12,7 @@ Automated benchmarks measuring **performance** and **correctness** of JSON Logic
 
 | Language    | Libraries | Versions |
 |-------------|-----------|----------|
-| **Ruby**    | `shiny_json_logic`, `json-logic-rb`, `json_logic`, `json_logic_ruby` | 2.7, 3.1, 3.2, 3.3, 3.4, 4.0 |
+| **Ruby**    | `shiny_json_logic`, `json-logic-rb`, `json_logic`, `json_logic_ruby`, `jlogic_ruby` | 2.7, 3.1, 3.2, 3.3, 3.4, 4.0 |
 | **PHP**     | `shiny/json-logic-php`, `jwadhams/json-logic-php` | 8.1, 8.2, 8.3 |
 | **Crystal** | `shiny_json_logic` | 1.14, latest |
 
