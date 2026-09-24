@@ -65,6 +65,7 @@ gem_version = begin
   when 'json-logic-rb'    then JsonLogic::VERSION
   when 'json_logic'       then JSONLogic::VERSION
   when 'json_logic_ruby'  then JsonLogic::VERSION
+  when 'jlogic_ruby'      then JSONLogic::VERSION
   else 'unknown'
   end
 rescue
@@ -77,6 +78,7 @@ def call_adapter(adapter, logic, data)
   when 'json-logic-rb'    then JsonLogic.apply(logic, data)
   when 'json_logic'       then JSONLogic.apply(logic, data)
   when 'json_logic_ruby'  then JsonLogic::Evaluator.new.apply(logic, data)
+  when 'jlogic_ruby'      then JSONLogic.apply(logic, data)
   else raise "Unknown adapter: #{adapter}"
   end
 end
